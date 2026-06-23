@@ -41,8 +41,11 @@ const HomePage = () => {
             <Link to="/chat" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-saffron-400 text-teal-800 font-display font-bold rounded-xl hover:bg-saffron-500 transition-colors text-sm">
               <MessageSquare size={18} /> Start Chatting Free
             </Link>
+            <Link to="/find-schemes" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-teal-800 font-display font-bold rounded-xl hover:bg-cream-100 transition-colors text-sm">
+              🎯 Find My Schemes
+            </Link>
             <Link to="/schemes" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-teal-500 text-teal-200 font-display font-medium rounded-xl hover:bg-teal-700 transition-colors text-sm">
-              <Search size={18} /> Browse All Schemes
+              <Search size={18} /> Browse All
             </Link>
           </div>
         </div>
@@ -99,11 +102,16 @@ const HomePage = () => {
 
       {/* CTA */}
       <section className="py-12 px-4 bg-teal-800 text-center">
-        <h2 className="font-display font-bold text-2xl text-cream-50 mb-3">Start for Free — No Registration Needed</h2>
-        <p className="text-teal-300 font-body text-sm mb-6">Create an account to save schemes, get reminders, and track applications.</p>
-        <Link to="/chat" className="inline-flex items-center gap-2 px-8 py-3 bg-saffron-400 text-teal-800 font-display font-bold rounded-xl hover:bg-saffron-500 transition-colors">
-          Chat with AI Now <ArrowRight size={16} />
-        </Link>
+        <h2 className="font-display font-bold text-2xl text-cream-50 mb-3">Find Schemes That Match You — Instantly</h2>
+        <p className="text-teal-300 font-body text-sm mb-6">Tell us who you are in 2 steps and we'll match 3400+ schemes to your profile.</p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/find-schemes" className="inline-flex items-center gap-2 px-8 py-3 bg-saffron-400 text-teal-800 font-display font-bold rounded-xl hover:bg-saffron-500 transition-colors">
+            🎯 Find My Schemes
+          </Link>
+          <Link to="/chat" className="inline-flex items-center gap-2 px-8 py-3 border border-teal-500 text-teal-200 font-display font-medium rounded-xl hover:bg-teal-700 transition-colors">
+            <MessageSquare size={16} /> Chat with AI
+          </Link>
+        </div>
       </section>
     </div>
   );

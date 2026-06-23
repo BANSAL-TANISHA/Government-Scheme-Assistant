@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotificationsPage from './pages/NotificationsPage';
+import OnboardingPage from './pages/OnboardingPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -28,6 +29,7 @@ function AppRoutes() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/find-schemes" element={<OnboardingPage />} />
           <Route path="/schemes" element={<SchemesPage />} />
           <Route path="/schemes/:id" element={<SchemeDetailPage />} />
           <Route path="/login" element={<LoginPage />} />

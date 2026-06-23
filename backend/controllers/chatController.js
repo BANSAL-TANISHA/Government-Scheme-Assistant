@@ -31,14 +31,13 @@ exports.sendMessage = async (req, res) => {
       extractedProfile = session.extractedProfile;
     }
 
-    // Extract profile from new message
-    const newProfileData = extractProfileFromText(message);
+    // Extract profile from new message — tries Gemini first, falls back to regex
+    const newProfileData = await extractProfileFromText(message, extractedProfile);
     extractedProfile = { ...extractedProfile, ...newProfileData };
 
     console.log('🔍 Extracted Profile:', JSON.stringify(extractedProfile));
 
     // ── Fetch ALL active schemes — no pre-filtering ──
-    // Let the eligibility engine handle the matching logic
     let schemes = [];
     try {
       schemes = await Scheme.find({ isActive: true }).lean();
@@ -59,8 +58,8 @@ exports.sendMessage = async (req, res) => {
       userMessage: message,
       history,
       extractedProfile,
-      eligibleSchemes: matchedSchemes.eligible.slice(0, 5),
-      partialSchemes: matchedSchemes.partial.slice(0, 3),
+      eligibleSchemes: matchedSchemes.eligible.slice(0, 8),
+      partialSchemes: matchedSchemes.partial.slice(0, 4),
       language,
     });
 

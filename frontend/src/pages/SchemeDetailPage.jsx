@@ -161,53 +161,41 @@ const SchemeDetailPage = () => {
       )}
 
       {/* Actions */}
-      {/* <div className="flex flex-wrap gap-3">
-        {scheme.portalLink && (
+      <div className="flex flex-wrap gap-3">
+        {scheme.portalLink ? (
           <a href={scheme.portalLink} target="_blank" rel="noreferrer"
             className="btn-primary flex items-center gap-2">
             Apply Online <ExternalLink size={14} />
           </a>
-        )}
-        <button onClick={handleMarkApplied} className="btn-secondary">
-          ✅ Mark as Applied
-        </button>
-        <Link to="/chat" className="btn-secondary flex items-center gap-2">
-          💬 Ask AI about this scheme
-        </Link>
-      </div> */}
-      <div className="flex flex-wrap gap-3">
-        {scheme.portalLink ? (
-          <a
-            href={scheme.portalLink}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary flex items-center gap-2"
-          >
-            Apply Online <ExternalLink size={14} />
-          </a>
         ) : (
-          <a
-            //     href={`https://www.myscheme.gov.in/search?q=${encodeURIComponent(
-            //       scheme.name
-            //     )}`}
-            //     target="_blank"
-            //     rel="noreferrer"
-            //     className="btn-primary flex items-center gap-2"
-            //   >
-            //     Search on MyScheme.gov.in <ExternalLink size={14} />
-            //   </a>
-            // )}
-            href="https://www.myscheme.gov.in"
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary flex items-center gap-2"
-          >
+          <a href="https://www.myscheme.gov.in" target="_blank" rel="noreferrer"
+            className="btn-primary flex items-center gap-2">
             View on MyScheme.gov.in <ExternalLink size={14} />
           </a>
         )}
 
-        <button onClick={handleMarkApplied} className="btn-secondary">
-          ✅ Mark as Applied
+        <button onClick={handleMarkApplied} className="btn-secondary">✅ Mark as Applied</button>
+
+        {/* WhatsApp Share */}
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(`🏛️ Government Scheme: ${scheme.name}\n\n${scheme.description?.substring(0, 200)}...\n\nBenefits: ${scheme.benefits?.substring(0, 150)}\n\nMore info: ${window.location.href}`)}`}
+          target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-body text-sm font-medium hover:bg-green-600 transition-colors">
+          📱 Share on WhatsApp
+        </a>
+
+        {/* Copy Link */}
+        <button
+          onClick={() => { navigator.clipboard.writeText(window.location.href); import('react-hot-toast').then(m => m.default.success('Link copied!')); }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-cream-200 text-gray-700 rounded-xl font-body text-sm hover:border-teal-400 transition-colors">
+          🔗 Copy Link
+        </button>
+
+        {/* Print Checklist */}
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-cream-200 text-gray-700 rounded-xl font-body text-sm hover:border-teal-400 transition-colors">
+          🖨️ Print Checklist
         </button>
 
         <Link to="/chat" className="btn-secondary flex items-center gap-2">
