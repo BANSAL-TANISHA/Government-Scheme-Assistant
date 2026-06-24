@@ -30,31 +30,37 @@ const extractProfileWithGemini = async (text, existingProfile = {}) => {
   if (!model) return null;
 
   try {
-    const prompt = `Extract user profile information from this message and return ONLY valid JSON (no markdown, no explanation):
+    const prompt = `You are a data extraction AI. Extract user profile information from the message below and return ONLY a valid JSON object.
 
 Message: "${text}"
 Existing profile: ${JSON.stringify(existingProfile)}
 
-Return JSON with ONLY the fields you are confident about extracting. Use null for unknown:
+Return a JSON object with ONLY the fields you can confidently extract. Omit fields you cannot determine (do not include null values):
 {
-  "age": number or null,
-  "gender": "male" | "female" | "all" | null,
-  "state": "full state name like Rajasthan" or null,
-  "occupation": "student" | "farmer" | "self-employed" | "unemployed" | "retired" | "employed" | null,
-  "annualIncome": number in rupees or null,
-  "category": "sc" | "st" | "obc" | "ews" | "general" | null,
-  "education": "10th" | "12th" | "Graduate" | "Post-Graduate" | "Diploma" | "ITI" | "PhD" | null,
-  "isDisabled": true | null,
-  "maritalStatus": "widow" | "married" | "unmarried" | null
+  "age": number,
+  "gender": "male" | "female",
+  "state": "exact Indian state name",
+  "occupation": "student" | "farmer" | "self-employed" | "unemployed" | "retired" | "employed" | "widow",
+  "annualIncome": number in rupees,
+  "category": "sc" | "st" | "obc" | "ews" | "general",
+  "education": "10th" | "12th" | "Graduate" | "Post-Graduate" | "Diploma" | "ITI" | "PhD",
+  "isDisabled": true,
+  "maritalStatus": "widow" | "married" | "unmarried"
 }
 
-Rules:
-- "Rajasthan" not "rajasthan" — proper case for state
-- If message says "kisan" or "kheti", occupation = "farmer"
-- If message says "chhatra" or "padh raha", occupation = "student"  
-- Income "3 lakh" = 300000, "50 hazar" = 50000
-- Only override existing fields if new message gives clearer info
-- Return ONLY the JSON object, nothing else`;
+IMPORTANT RULES — follow strictly:
+1. State name: Fix ALL spelling mistakes. "rajastahn" → "Rajasthan". "maharahstra" → "Maharashtra". "delho" → "Delhi". Always use proper capitalized full state name.
+2. Occupation mapping:
+   - "entrepreneur", "business owner", "businesswoman", "businessperson", "runs a shop", "startup founder" → "self-employed"
+   - "student", "studying", "pursuing degree", "in college/school" → "student"
+   - "widow", "vidhwa", "विधवा" → occupation = "widow", maritalStatus = "widow", gender = "female"
+   - "kisan", "farmer", "kheti" → "farmer"
+   - "retired", "pension" → "retired"
+3. Gender: "woman", "female", "lady", "girl", "she", "her", "mahila" → "female". "man", "male", "boy", "he", "him" → "male"
+4. Education: "btech", "b.tech" → "Graduate". "mtech", "mba" → "Post-Graduate". "12th", "hsc" → "12th"
+5. Income: "3 lakh" → 300000. "50k" or "50 hazar" → 50000
+6. If the user explicitly says a NEW state (e.g. "from rajasthan"), ALWAYS use that new state, overriding any existing one.
+7. Return ONLY the JSON. No explanation, no markdown, no extra text.`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();

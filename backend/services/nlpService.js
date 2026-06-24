@@ -3,10 +3,10 @@ const { extractProfileWithGemini } = require('./geminiService');
 // ── State name map (city → state, Hindi words → state) ──────────────────────
 const stateMap = {
   // Rajasthan
-  'rajasthan': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
+  'rajasthan': 'Rajasthan', 'rajastahn': 'Rajasthan', 'rajsthan': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
   'udaipur': 'Rajasthan', 'kota': 'Rajasthan', 'bikaner': 'Rajasthan', 'ajmer': 'Rajasthan',
   // Maharashtra
-  'maharashtra': 'Maharashtra', 'mumbai': 'Maharashtra', 'pune': 'Maharashtra',
+  'maharashtra': 'Maharashtra', 'maharahstra': 'Maharashtra', 'mumbai': 'Maharashtra', 'pune': 'Maharashtra',
   'nagpur': 'Maharashtra', 'nashik': 'Maharashtra', 'aurangabad': 'Maharashtra',
   // Uttar Pradesh
   'uttar pradesh': 'Uttar Pradesh', 'up': 'Uttar Pradesh', 'lucknow': 'Uttar Pradesh',
@@ -113,22 +113,45 @@ const extractWithRegex = (text) => {
     if (lower.includes(key)) { profile.state = stateMap[key]; break; }
   }
 
-  // Occupation (specific → general)
-  if (/\b(btech|b\.tech|b tech|engineering student|medical student|mbbs student|law student|chhatra|padh raha|padh rahi|padhai kar|studying)\b/i.test(lower)) {
-    profile.occupation = 'student';
-  } else if (/\b(student|college|school|university|pursuing|padh raha|padhai)\b/i.test(lower)) {
-    profile.occupation = 'student';
-  } else if (/\b(farmer|kisan|kisaan|kheti|agriculture|farming|krishi|खेती|किसान)\b/i.test(lower)) {
-    profile.occupation = 'farmer';
-  } else if (/\b(widow|vidhwa|widowed|विधवा)\b/i.test(lower)) {
-    profile.occupation = 'unemployed'; profile.maritalStatus = 'widow'; profile.gender = profile.gender || 'female';
-  } else if (/\b(self.?employed|business|entrepreneur|startup|shop|dukan|vyapari|व्यापारी)\b/i.test(lower)) {
+  // Occupation — CHECK MOST SPECIFIC FIRST to avoid false triggers
+  // 1. Woman entrepreneur (must come before student/entrepreneur generic checks)
+  if (/\b(woman entrepreneur|women entrepreneur|businesswoman|female entrepreneur|lady entrepreneur|mahila entrepreneur|female business)\b/i.test(lower)) {
     profile.occupation = 'self-employed';
-  } else if (/\b(unemployed|job.?less|no job|berozgar|बेरोजगार)\b/i.test(lower)) {
-    profile.occupation = 'unemployed';
-  } else if (/\b(retired|pension|सेवानिवृत्त)\b/i.test(lower)) {
+    profile.gender = 'female';
+    // 2. Widow
+  } else if (/\b(widow|vidhwa|widowed|\u0935\u093f\u0927\u0935\u093e)\b/i.test(lower)) {
+    profile.maritalStatus = 'widow';
+    profile.occupation = 'widow';
+    profile.gender = profile.gender || 'female';
+    // 3. Farmer
+  } else if (/\b(farmer|kisan|kisaan|kheti|agriculture|farming|krishi|\u0916\u0947\u0924\u0940|\u0915\u093f\u0938\u093e\u0928)\b/i.test(lower)) {
+    profile.occupation = 'farmer';
+    // 4. Retired / pension
+  } else if (/\b(retired|pension|\u0938\u0947\u0935\u093e\u0928\u093f\u0935\u0943\u0924\u094d\u0924)\b/i.test(lower)) {
     profile.occupation = 'retired';
+    // 5. Self-employed / business (generic)
+  } else if (/\b(self.?employed|business owner|startup founder|entrepreneur|shop owner|dukan|vyapari|\u0935\u094d\u092f\u093e\u092a\u093e\u0930\u0940)\b/i.test(lower)) {
+    profile.occupation = 'self-employed';
+    // 6. Student — NOTE: btech/mbbs alone do NOT mean "currently student" (could be completed)
+    //    Only set student if paired with student context words
+  } else if (/\b(engineering student|medical student|mbbs student|law student|btech student|b\.tech student|mbbs stduent|mbbs stdnt)\b/i.test(lower)) {
+    profile.occupation = 'student';
+    // Detect MBBS/medical → set education as Graduate-level
+    if (/\bmbbs\b/i.test(lower)) profile.education = profile.education || 'Graduate';
+  } else if (/\bmbbs\b.*\b(student|stduent|stdnt|studying|pursuing)\b|\b(student|stduent|stdnt|studying|pursuing)\b.*\bmbbs\b/i.test(lower)) {
+    // "mbbs student" or "student mbbs" with typos
+    profile.occupation = 'student';
+    profile.education = profile.education || 'Graduate';
+  } else if (/\b(student|stduent|stdnt|studying|pursuing|chhatra|padh raha|padh rahi|padhai kar)\b/i.test(lower)) {
+    profile.occupation = 'student';
+  } else if (/\b(in college|in school|in university|in class|attending college)\b/i.test(lower)) {
+    profile.occupation = 'student';
+
+    // 7. Unemployed
+  } else if (/\b(unemployed|job.?less|no job|berozgar|\u092c\u0947\u0930\u094b\u091c\u0917\u093e\u0930)\b/i.test(lower)) {
+    profile.occupation = 'unemployed';
   }
+
 
   // Education
   for (const [key, value] of Object.entries(educationMap)) {
