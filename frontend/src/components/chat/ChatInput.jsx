@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Mic, MicOff, Trash2 } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import useSpeech from '../../hooks/useSpeech';
@@ -29,19 +29,34 @@ const ChatInput = () => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
-  const handleVoice = () => {
-    if (isListening) {
-      stopListening();
-      if (transcript) { setInput(transcript); resetTranscript(); }
-    } else {
+  // Called automatically when voice recognition ends (user stopped speaking)
+  const handleVoiceAutoEnd = (finalText) => {
+    if (finalText) {
+      setInput(finalText);
       resetTranscript();
-      startListening('hi-IN');
-      toast('Listening... Speak in Hindi or English', { icon: '🎙️', duration: 2000 });
+      toast.success('Voice captured! Press Enter to send.', { icon: '✅', duration: 2000 });
     }
   };
 
-  // Live transcript shown in input
-  const displayValue = isListening ? transcript || input : input;
+  const handleVoice = () => {
+    if (isListening) {
+      // Manual stop — capture whatever was transcribed
+      stopListening();
+      if (transcript) {
+        setInput(transcript);
+        resetTranscript();
+      }
+    } else {
+      setInput('');
+      resetTranscript();
+      // Pass handleVoiceAutoEnd so text is auto-filled when user stops speaking
+      startListening('hi-IN', handleVoiceAutoEnd);
+      toast('Listening… Speak in Hindi or English', { icon: '🎙️', duration: 2500 });
+    }
+  };
+
+  // While listening, show live transcript in input box
+  const displayValue = isListening ? (transcript || input) : input;
 
   return (
     <div className="border-t border-cream-200 px-4 py-3 bg-cream-50">
@@ -70,7 +85,7 @@ const ChatInput = () => {
         />
         <button onClick={handleVoice}
           className={`p-2.5 rounded-lg border transition-colors ${isListening ? 'bg-red-100 border-red-300 text-red-600 animate-pulse' : 'bg-white border-cream-200 text-teal-600 hover:bg-teal-50'}`}
-          title={isListening ? 'Stop listening' : 'Speak'}>
+          title={isListening ? 'Stop listening' : 'Speak your question'}>
           {isListening ? <MicOff size={18} /> : <Mic size={18} />}
         </button>
         <button onClick={handleSend} disabled={!input.trim() || isTyping}

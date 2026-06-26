@@ -4,20 +4,63 @@ const { matchSchemes } = require('../services/eligibilityService');
 // @route GET /api/schemes
 exports.getAllSchemes = async (req, res) => {
   try {
-    const { category, state, search, page = 1, limit = 20 } = req.query;
+    const { category, state, search, level, page = 1, limit = 12 } = req.query;
     const query = { isActive: true };
-    if (category) query.category = category;
-    if (state) query.$or = [{ state }, { 'eligibility.states': { $size: 0 } }];
-    if (search) query.$text = { $search: search };
 
+    // Category filter — exact match on enum field
+    if (category) query.category = category;
+
+    // Level filter — 'central' or 'state' (stored in the level field)
+    if (level && (level === 'central' || level === 'state')) {
+      query.level = level;
+    }
+
+    // State filter — state name appears in scheme description or name text
+    // because the 'state' DB field is always null; state data lives in description text
+    if (state && state !== '' && state !== 'all') {
+      const stateRegex = new RegExp(state.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      if (search && search.trim()) {
+        // Combine state AND search: name matches search AND description mentions state
+        query.$and = [
+          { $or: [{ name: stateRegex }, { description: stateRegex }] },
+          { name: new RegExp(search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+        ];
+      } else {
+        // State only: description or name mentions the state name
+        query.$or = [
+          { name: stateRegex },
+          { description: stateRegex },
+        ];
+      }
+    // Search — each word must appear somewhere in the name (ALL words, any order)
+    // Use a combined lookahead regex: (?=.*word1)(?=.*word2) on the name field
+    } else if (search && search.trim()) {
+      const words = search.trim().split(/\s+/).filter(w => w.length > 1);
+      if (words.length > 0) {
+        // Build a single regex that requires ALL words to be present
+        const escapedWords = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        const combinedPattern = escapedWords.map(w => `(?=.*${w})`).join('');
+        query.name = new RegExp(combinedPattern, 'i');
+      }
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
     const schemes = await Scheme.find(query)
-      .skip((page - 1) * limit)
+      .skip(skip)
       .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
+      .sort({ level: 1, createdAt: -1 }); // state schemes first, then central
+
     const total = await Scheme.countDocuments(query);
 
-    res.json({ success: true, schemes, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+    res.json({
+      success: true,
+      schemes,
+      total,
+      page: parseInt(page),
+      pages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (error) {
+    console.error('getAllSchemes error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

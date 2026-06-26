@@ -44,7 +44,7 @@ Return a JSON object with ONLY the fields you can confidently extract. Omit fiel
   "annualIncome": number in rupees,
   "category": "sc" | "st" | "obc" | "ews" | "general",
   "education": "10th" | "12th" | "Graduate" | "Post-Graduate" | "Diploma" | "ITI" | "PhD",
-  "isDisabled": true,
+  "isDisabled": true | false,
   "maritalStatus": "widow" | "married" | "unmarried"
 }
 
@@ -60,7 +60,9 @@ IMPORTANT RULES — follow strictly:
 4. Education: "btech", "b.tech" → "Graduate". "mtech", "mba" → "Post-Graduate". "12th", "hsc" → "12th"
 5. Income: "3 lakh" → 300000. "50k" or "50 hazar" → 50000
 6. If the user explicitly says a NEW state (e.g. "from rajasthan"), ALWAYS use that new state, overriding any existing one.
-7. Return ONLY the JSON. No explanation, no markdown, no extra text.`;
+7. Disability: If user says "no disability", "not disabled", "disability nahi", "koi disability nahi" → set isDisabled: false. If user says "disabled", "divyang", "handicap" → set isDisabled: true. If not mentioned at all, omit the field.
+8. Old/elderly: "old man", "old person", "70 years old", "bujurg" → occupation = "retired".
+9. Return ONLY the JSON. No explanation, no markdown, no extra text.`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
@@ -68,8 +70,8 @@ IMPORTANT RULES — follow strictly:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return null;
     const parsed = JSON.parse(jsonMatch[0]);
-    // Remove null values
-    return Object.fromEntries(Object.entries(parsed).filter(([_, v]) => v !== null));
+    // Remove null/undefined values but KEEP false (explicit 'not disabled' etc.)
+    return Object.fromEntries(Object.entries(parsed).filter(([_, v]) => v !== null && v !== undefined));
   } catch (e) {
     console.error('Gemini NLP error:', e.message);
     return null;

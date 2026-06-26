@@ -16,8 +16,9 @@ const sessionStore = new Map();
 const mergeProfiles = (existing, newData) => {
   const merged = { ...existing };
   for (const [key, value] of Object.entries(newData)) {
+    // Allow any non-null, non-undefined value — INCLUDING false (e.g. isDisabled: false = "no disability")
     if (value !== null && value !== undefined && value !== '') {
-      merged[key] = value; // Always let new data win for any field it has
+      merged[key] = value;
     }
   }
   return merged;

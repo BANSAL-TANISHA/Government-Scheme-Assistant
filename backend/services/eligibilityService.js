@@ -87,7 +87,10 @@ const OCCUPATION_KEYWORDS = {
     'placement', 'internship', 'nrega', 'mnrega', 'labour', 'worker',
   ],
   retired: [
-    'pension', 'senior citizen', 'old age', 'vridha', 'elderly', 'retire',
+    'pension', 'old age pension', 'senior citizen', 'old age', 'vridha', 'elderly', 'retire',
+    'indira gandhi', 'vridha pension', 'वृद्धा', 'budhapa', 'budhape ki pension',
+    'old age home', 'senior', 'pensioner', 'superannuation',
+    'mukhyamantri vridhjana', 'vridh', 'aged', 'geriatric',
   ],
 };
 
@@ -97,6 +100,7 @@ const CATEGORY_TO_OCCUPATION = {
   startup: 'self-employed',
   'skill-development': 'unemployed',
   'social-security': 'retired',
+  women: 'self-employed',
 };
 
 /**
@@ -171,17 +175,45 @@ const matchSchemes = (userProfile, schemes) => {
   const eligible = [];
   const partial = [];
 
+  // Keywords that indicate a scheme is for young people / marriage / children
+  // Elderly users (60+) should not see these
+  const YOUNG_PEOPLE_KEYWORDS = [
+    'vivah', 'shaadi', 'marriage grant', 'wedding', 'bride', 'groom',
+    'maternity', 'delivery', 'newborn', 'pregnancy', 'janani', 'birth grant',
+    'nandishala', 'cattle shelter', 'stray cattle', 'animal shelter', 'stray male cattle',
+  ];
+
+  const isElderlyMismatch = (scheme) => {
+    if (!userProfile.age || userProfile.age < 60) return false;
+    const schemeText = [scheme.name || '', scheme.description || '', scheme.benefits || ''].join(' ').toLowerCase();
+    return YOUNG_PEOPLE_KEYWORDS.some(kw => schemeText.includes(kw));
+  };
+
   for (const scheme of schemes) {
     // ── FILTER 1: State mismatch ──
     if (userProfile.state && isForDifferentState(scheme, userProfile.state)) continue;
 
     // ── FILTER 2: Education level mismatch ──
-    // Graduate+ users never see school-level schemes
     if (isEducationMismatch(userProfile, scheme)) continue;
 
     // ── FILTER 3: Occupation hard mismatch ──
-    // Non-students never see student-scholarship-only schemes
     if (isOccupationHardMismatch(userProfile, scheme)) continue;
+
+    // ── FILTER 4: Elderly mismatch (wedding/maternity/cattle schemes for 60+ users) ──
+    if (isElderlyMismatch(scheme)) continue;
+
+    // ── FILTER 5: Disability exclusion ──
+    // If user EXPLICITLY said "no disability" (isDisabled === false), hard-exclude disability-only schemes
+    if (userProfile.isDisabled === false) {
+      const schemeText = [scheme.name || '', scheme.description || '', scheme.benefits || '', scheme.category || ''].join(' ').toLowerCase();
+      const DISABILITY_ONLY_KEYWORDS = [
+        'disability pension', 'disabled person', 'divyang', 'handicap', 'differently abled',
+        'pwd scheme', 'specially abled', 'national disability', 'vikhyat', 'viklang',
+        'blind', 'deaf', 'cerebral palsy', 'leprosy cured',
+      ];
+      const isDisabilityScheme = DISABILITY_ONLY_KEYWORDS.some(kw => schemeText.includes(kw));
+      if (isDisabilityScheme) continue;
+    }
 
     const result = scoreScheme(userProfile, scheme);
     if (result.score <= 0) continue;

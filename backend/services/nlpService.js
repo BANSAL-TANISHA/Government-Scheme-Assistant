@@ -3,7 +3,7 @@ const { extractProfileWithGemini } = require('./geminiService');
 // ── State name map (city → state, Hindi words → state) ──────────────────────
 const stateMap = {
   // Rajasthan
-  'rajasthan': 'Rajasthan', 'rajastahn': 'Rajasthan', 'rajsthan': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
+  'rajasthan': 'Rajasthan', 'rajastahn': 'Rajasthan', 'rajsthan': 'Rajasthan', 'rajastah': 'Rajasthan', 'rajstan': 'Rajasthan', 'rajastan': 'Rajasthan', 'rajastha': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
   'udaipur': 'Rajasthan', 'kota': 'Rajasthan', 'bikaner': 'Rajasthan', 'ajmer': 'Rajasthan',
   // Maharashtra
   'maharashtra': 'Maharashtra', 'maharahstra': 'Maharashtra', 'mumbai': 'Maharashtra', 'pune': 'Maharashtra',
@@ -86,14 +86,18 @@ const extractWithRegex = (text) => {
   const lower = text.toLowerCase();
   const profile = {};
 
-  // Age
+  // Age — accepts common typos: yeard, eyars, yrs, yr, old, saal, sal
   const agePatterns = [
     /\bi(?:'m| am) (\d{1,2})\b/i,
-    /\b(\d{1,2})\s*(?:year|yr|saal|sal|वर्ष|साल)s?\s*old\b/i,
+    // "70 years old", "70 yeard old", "70 eyars old", "70 yr old", "70 yrs old"
+    /\b(\d{1,2})\s*(?:year[ds]?|yr[s]?|saal|sal|वर्ष|साल)(?:\s*old)?\b/i,
+    /\bold\s+(?:person|man|woman|lady)?\s*(?:of|around|about)?\s*(\d{1,2})\b/i,
+    /\baround\s+(\d{1,2})\s*(?:year[ds]?|yr[s]?|saal|sal)\b/i,
     /\bage[:\s]+(\d{1,2})\b/i,
-    /\b(\d{1,2})\s*(?:year|yr)s?\s*of\s*age\b/i,
     /\b(\d{1,2})\s*(?:saal|sal)\b/i,
-    /umra\s*(\d{1,2})/i,
+    /\bumra[:\s]*(\d{1,2})/i,
+    // "I am 70", "aged 70", "aged around 70"
+    /\baged?\s+(?:around|about)?\s*(\d{1,2})\b/i,
   ];
   for (const p of agePatterns) {
     const m = lower.match(p);
@@ -147,9 +151,17 @@ const extractWithRegex = (text) => {
   } else if (/\b(in college|in school|in university|in class|attending college)\b/i.test(lower)) {
     profile.occupation = 'student';
 
-    // 7. Unemployed
+    // 7. Elderly / senior citizen
+  } else if (/\b(old person|old man|old woman|elderly|senior citizen|bujurg|budhapa|budhape|aged person|pensioner|vriddha|budha|budhi)\b/i.test(lower)) {
+    profile.occupation = 'retired';
+    // 8. Unemployed
   } else if (/\b(unemployed|job.?less|no job|berozgar|\u092c\u0947\u0930\u094b\u091c\u0917\u093e\u0930)\b/i.test(lower)) {
     profile.occupation = 'unemployed';
+  }
+
+  // If age is 60+ and no occupation was detected, infer as retired/senior citizen
+  if (profile.age && profile.age >= 60 && !profile.occupation) {
+    profile.occupation = 'retired';
   }
 
 
@@ -183,8 +195,10 @@ const extractWithRegex = (text) => {
   else if (/\b(ews|economically weaker|general poor)\b/i.test(lower)) profile.category = 'ews';
   else if (/\b(general|unreserved|open category|सामान्य)\b/i.test(lower)) profile.category = 'general';
 
-  // Disability
-  if (/\b(disabled|disability|divyang|handicap|differently abled|specially abled|pwd|दिव्यांग)\b/i.test(lower)) {
+  // Disability — check for NEGATION first (e.g., "no disability", "not disabled")
+  if (/\b(no disability|not disabled|without disability|no divyang|koi disability nahi|disability nahi|disability nahin|not handicap|not divyang)\b/i.test(lower)) {
+    profile.isDisabled = false; // Explicitly NOT disabled
+  } else if (/\b(disabled|disability|divyang|handicap|differently abled|specially abled|pwd|दिव्यांग|विकलांग)\b/i.test(lower)) {
     profile.isDisabled = true;
   }
 
