@@ -67,4 +67,16 @@ app.listen(PORT, () => {
   console.log(`🚀 Yojana Sahayak server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
 });
 
+// Catch unhandled errors so they appear in Render logs
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason);
+  process.exit(1);
+});
+
 module.exports = app;
