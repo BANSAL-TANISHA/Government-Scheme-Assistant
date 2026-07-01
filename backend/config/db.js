@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/yojana-sahayak', {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/yojana-sahayak';
+    console.log('Connecting to MongoDB...');
+    // Note: useNewUrlParser and useUnifiedTopology are removed (deprecated in Mongoose 8)
+    const conn = await mongoose.connect(uri);
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ MongoDB connection error: ${error.message}`);

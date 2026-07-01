@@ -1,17 +1,56 @@
+// ── CRASH HANDLERS must be FIRST — before any require() ─────────────────────
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise);
+  console.error('Reason:', reason);
+  process.exit(1);
+});
+
+console.log('[1/10] Starting Yojana Sahayak backend...');
+
 const express = require('express');
+console.log('[2/10] express OK');
+
 const cors = require('cors');
+console.log('[3/10] cors OK');
+
 const helmet = require('helmet');
+console.log('[4/10] helmet OK');
+
 const morgan = require('morgan');
+console.log('[5/10] morgan OK');
+
 const rateLimit = require('express-rate-limit');
+console.log('[6/10] express-rate-limit OK');
+
 require('dotenv').config();
+console.log('[7/10] dotenv OK');
 
 const connectDB = require('./config/db');
+console.log('[8/10] db config OK');
+
 const authRoutes = require('./routes/authRoutes');
+console.log('[9a] authRoutes OK');
+
 const schemeRoutes = require('./routes/schemeRoutes');
+console.log('[9b] schemeRoutes OK');
+
 const chatRoutes = require('./routes/chatRoutes');
+console.log('[9c] chatRoutes OK');
+
 const profileRoutes = require('./routes/profileRoutes');
+console.log('[9d] profileRoutes OK');
+
 const notificationRoutes = require('./routes/notificationRoutes');
+console.log('[9e] notificationRoutes OK');
+
 const { errorHandler } = require('./middleware/errorHandler');
+console.log('[10/10] All modules loaded ✅');
 
 const app = express();
 
@@ -64,19 +103,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 Yojana Sahayak server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-});
-
-// Catch unhandled errors so they appear in Render logs
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION:', err.message);
-  console.error(err.stack);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('UNHANDLED REJECTION:', reason);
-  process.exit(1);
+  console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'production'} mode`);
 });
 
 module.exports = app;
