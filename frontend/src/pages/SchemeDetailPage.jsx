@@ -2,9 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { schemesAPI, profileAPI } from '../services/api';
 import { categoryColors, getCategoryLabel, formatDate } from '../utils/helpers';
-import { ExternalLink, CheckCircle, FileText, ArrowLeft, Loader2 } from 'lucide-react';
+import { ExternalLink, CheckCircle, FileText, ArrowLeft, Loader2, Copy, Share2, Printer } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+
+// Public base URL — use env variable if set, else use the current browser origin
+// When running locally: window.location.origin = http://localhost:5173 (only works on your machine)
+// When deployed to Vercel/Render: window.location.origin = your real domain ✅
+const APP_BASE_URL = import.meta.env.VITE_APP_URL || window.location.origin;
 
 const SchemeDetailPage = () => {
   const { id } = useParams();
@@ -177,16 +182,53 @@ const SchemeDetailPage = () => {
         <button onClick={handleMarkApplied} className="btn-secondary">✅ Mark as Applied</button>
 
         {/* WhatsApp Share */}
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(`🏛️ Government Scheme: ${scheme.name}\n\n${scheme.description?.substring(0, 200)}...\n\nBenefits: ${scheme.benefits?.substring(0, 150)}\n\nMore info: ${window.location.href}`)}`}
-          target="_blank" rel="noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-body text-sm font-medium hover:bg-green-600 transition-colors">
-          📱 Share on WhatsApp
-        </a>
+        {(() => {
+          // Build the shareable URL using public domain (not localhost)
+          const schemeUrl = `${APP_BASE_URL}/schemes/${scheme._id}`;
+          const schemeName = scheme.name || 'Government Scheme';
+          const desc = scheme.description?.substring(0, 200)?.trim();
+          const benefits = scheme.benefits?.substring(0, 150)?.trim();
+
+          // URL must be on its OWN line for WhatsApp to render it as a clickable hyperlink
+          // Format: title \n\n description \n\n Benefits: ... \n\n [URL on its own line]
+          const waText = [
+            `🏛️ *${schemeName}*`,
+            '',
+            desc ? `${desc}...` : '',
+            '',
+            benefits ? `💰 *Benefits:* ${benefits}` : '',
+            '',
+            '🔗 View full details:',
+            schemeUrl,   // ← URL alone on its own line = WhatsApp makes it clickable
+          ].filter(l => l !== undefined).join('\n');
+
+          return (
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(waText)}`}
+              target="_blank" rel="noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-body text-sm font-medium hover:bg-green-600 transition-colors">
+              📱 Share on WhatsApp
+            </a>
+          );
+        })()}
 
         {/* Copy Link */}
         <button
-          onClick={() => { navigator.clipboard.writeText(window.location.href); import('react-hot-toast').then(m => m.default.success('Link copied!')); }}
+          onClick={() => {
+            const schemeUrl = `${APP_BASE_URL}/schemes/${scheme._id}`;
+            navigator.clipboard.writeText(schemeUrl).then(() => {
+              toast.success('Link copied to clipboard!');
+            }).catch(() => {
+              // Fallback for browsers that block clipboard API
+              const ta = document.createElement('textarea');
+              ta.value = schemeUrl;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+              toast.success('Link copied!');
+            });
+          }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-cream-200 text-gray-700 rounded-xl font-body text-sm hover:border-teal-400 transition-colors">
           🔗 Copy Link
         </button>
