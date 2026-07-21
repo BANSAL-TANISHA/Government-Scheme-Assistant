@@ -3,8 +3,8 @@ const { extractProfileWithGemini } = require('./geminiService');
 // ── State name map (city → state, Hindi words → state) ──────────────────────
 const stateMap = {
   // Rajasthan
-  'rajasthan': 'Rajasthan', 'rajastahn': 'Rajasthan', 'rajsthan': 'Rajasthan', 'rajastah': 'Rajasthan', 'rajstan': 'Rajasthan', 'rajastan': 'Rajasthan', 'rajastha': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
-  'udaipur': 'Rajasthan', 'kota': 'Rajasthan', 'bikaner': 'Rajasthan', 'ajmer': 'Rajasthan',
+  'rajasthan': 'Rajasthan', 'rajastahn': 'Rajasthan', 'rajsthan': 'Rajasthan', 'rajastah': 'Rajasthan', 'rajstan': 'Rajasthan', 'rajastan': 'Rajasthan', 'rajastha': 'Rajasthan', 'rajatshan': 'Rajasthan', 'rajatshn': 'Rajasthan', 'rajastahn': 'Rajasthan', 'jaipur': 'Rajasthan', 'jodhpur': 'Rajasthan',
+  'udaipur': 'Rajasthan', 'kota': 'Rajasthan', 'bikaner': 'Rajasthan', 'ajmer': 'Rajasthan', 'rajasthaan': 'Rajasthan',
   // Maharashtra
   'maharashtra': 'Maharashtra', 'maharahstra': 'Maharashtra', 'mumbai': 'Maharashtra', 'pune': 'Maharashtra',
   'nagpur': 'Maharashtra', 'nashik': 'Maharashtra', 'aurangabad': 'Maharashtra',
@@ -78,7 +78,14 @@ const educationMap = {
   'ba ': 'Graduate', ' ba ': 'Graduate',
   'diploma': 'Diploma', 'iti': 'ITI', 'polytechnic': 'Diploma',
   '12th': '12th', 'hsc': '12th', 'intermediate': '12th', 'higher secondary': '12th',
-  '10th': '10th', 'ssc': '10th', 'matric': '10th',
+  'cleared 12th': '12th', 'passed 12th': '12th', '12th class': '12th', '12th pass': '12th',
+  'now in 12th': '12th', 'in 12th': '12th', 'class 12': '12th',
+  'now in 11th': '12th', 'in 11th': '12th', 'class 11': '12th', '11th class': '12th',
+  'currently in 12th': '12th', 'currently in 11th': '12th',
+  '10th': '10th', 'ssc': '10th', 'matric': '10th', 'matriculation': '10th',
+  'cleared 10th': '10th', 'passed 10th': '10th', '10th class': '10th', '10th pass': '10th',
+  'class 10': '10th', '10 th': '10th', '10th cleared': '10th',
+  'passed 10': '10th', 'cleared 10': '10th',
 };
 
 // ── Fast regex-based extractor (runs first, instant) ─────────────────────────
@@ -122,8 +129,10 @@ const extractWithRegex = (text) => {
   if (/\b(woman entrepreneur|women entrepreneur|businesswoman|female entrepreneur|lady entrepreneur|mahila entrepreneur|female business)\b/i.test(lower)) {
     profile.occupation = 'self-employed';
     profile.gender = 'female';
-    // 2. Widow
-  } else if (/\b(widow|vidhwa|widowed|\u0935\u093f\u0927\u0935\u093e)\b/i.test(lower)) {
+    // 2. Widow — matches 'widow', 'widows', 'vidhwa', 'widowed', Hindi variants
+    //    Also matches query phrases: "schemes for widows", "i am a widow"
+  } else if (/\b(widows?|vidhwa|widowed|\u0935\u093f\u0927\u0935\u093e|nirashrit mahila)\b/i.test(lower) ||
+             /\b(schemes?\s+for\s+widows?|widow\s+scheme|vidhwa\s+yojana)\b/i.test(lower)) {
     profile.maritalStatus = 'widow';
     profile.occupation = 'widow';
     profile.gender = profile.gender || 'female';
@@ -165,9 +174,32 @@ const extractWithRegex = (text) => {
   }
 
 
-  // Education
-  for (const [key, value] of Object.entries(educationMap)) {
-    if (lower.includes(key)) { profile.education = value; break; }
+  // Education — check "now in 11th/12th" FIRST (most specific), then the map
+  // "passed 10th now in 11th" → currently pursuing 12th
+  if (/\b(now\s+in|currently\s+in|i(?:'m|\s+am)\s+(?:now\s+)?in|studying\s+in)\s+1[12]th\b/i.test(lower)) {
+    profile.education = '12th';
+  } else if (/\b(now\s+in|currently\s+in|i(?:'m|\s+am)\s+in)\s+10th\b/i.test(lower)) {
+    profile.education = '10th';
+  } else {
+    // NOTE: check longer/more-specific keys first to avoid '10th' matching before 'cleared 10th'
+    const sortedEduKeys = Object.keys(educationMap).sort((a, b) => b.length - a.length);
+    for (const key of sortedEduKeys) {
+      if (lower.includes(key)) { profile.education = educationMap[key]; break; }
+    }
+  }
+
+  // Marks / Percentage — extract academic score (e.g. "got 40%", "scored 75%", "40 percent")
+  const marksPatterns = [
+    /\b(?:got|scored|got\s+marks|marks|percentage|percent|scored|obtained|achieved)\s+(\d{1,3})\s*(?:%|percent)/i,
+    /\b(\d{1,3})\s*(?:%|percent)\s*(?:marks|score|in\s+10th|in\s+12th|in\s+board)?/i,
+    /\b(\d{1,3})\s*(?:%|percent)\s*(?:marks)?\s+(?:in|at|from)/i,
+  ];
+  for (const p of marksPatterns) {
+    const m = lower.match(p);
+    if (m) {
+      const pct = parseFloat(m[1]);
+      if (pct > 0 && pct <= 100) { profile.marksPercent = pct; break; }
+    }
   }
 
   // Income

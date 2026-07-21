@@ -44,25 +44,45 @@ Return a JSON object with ONLY the fields you can confidently extract. Omit fiel
   "annualIncome": number in rupees,
   "category": "sc" | "st" | "obc" | "ews" | "general",
   "education": "10th" | "12th" | "Graduate" | "Post-Graduate" | "Diploma" | "ITI" | "PhD",
+  "marksPercent": number (0-100, the user's academic percentage/marks),
   "isDisabled": true | false,
   "maritalStatus": "widow" | "married" | "unmarried"
 }
 
 IMPORTANT RULES — follow strictly:
-1. State name: Fix ALL spelling mistakes. "rajastahn" → "Rajasthan". "maharahstra" → "Maharashtra". "delho" → "Delhi". Always use proper capitalized full state name.
+1. State name: Fix ALL spelling mistakes and typos for Indian states:
+   - "rajastahn", "rajatshan", "rajatshn", "rajastha", "rajastan", "rajstan", "rajatshan" → "Rajasthan"
+   - "maharahstra", "maharastra" → "Maharashtra"
+   - "delho", "delhe" → "Delhi"
+   - Always use proper capitalized full state name.
 2. Occupation mapping:
    - "entrepreneur", "business owner", "businesswoman", "businessperson", "runs a shop", "startup founder" → "self-employed"
-   - "student", "studying", "pursuing degree", "in college/school" → "student"
-   - "widow", "vidhwa", "विधवा" → occupation = "widow", maritalStatus = "widow", gender = "female"
-   - "kisan", "farmer", "kheti" → "farmer"
-   - "retired", "pension" → "retired"
+   - "student", "studying", "pursuing degree", "in college/school", "i am a student", "student from", "now in 11th", "now in 12th" → "student"
+   - "widow", "widows", "vidhwa", "schemes for widows", "i am a widow", "i m a widow", "widow schemes" → occupation = "widow", maritalStatus = "widow", gender = "female"
+   - "kisan", "farmer", "kheti", "schemes for farmers", "i am a farmer" → "farmer"
+   - "retired", "pension", "schemes for retired", "senior citizen schemes" → "retired"
+   - CRITICAL: Phrases like "Schemes for widows", "show widow schemes", "widow yojana" indicate the user IS a widow and wants widow schemes. Set occupation:"widow".
 3. Gender: "woman", "female", "lady", "girl", "she", "her", "mahila" → "female". "man", "male", "boy", "he", "him" → "male"
-4. Education: "btech", "b.tech" → "Graduate". "mtech", "mba" → "Post-Graduate". "12th", "hsc" → "12th"
+4. Education — CRITICAL: Map these exactly:
+   - "now in 11th class", "currently in 11th", "i m in 11th", "studying in 11th", "in 11th class", "11th class", "11th classs" → "12th" (user is currently pursuing 12th-level)
+   - "now in 12th class", "currently in 12th", "in 12th class", "12th class" → "12th"
+   - "cleared 10th", "passed 10th", "10th class", "10th pass", "cleared 10th class", "10th cleared", "matric", "ssc", "class 10", "10 th class" → "10th"
+   - "cleared 12th", "passed 12th", "12th pass", "hsc", "intermediate", "higher secondary" → "12th"
+   - "btech", "b.tech", "graduation", "graduate" → "Graduate"
+   - "mtech", "mba", "post graduate", "masters" → "Post-Graduate"
+   - "diploma", "polytechnic" → "Diploma"
+   - "iti" → "ITI"
 5. Income: "3 lakh" → 300000. "50k" or "50 hazar" → 50000
 6. If the user explicitly says a NEW state (e.g. "from rajasthan"), ALWAYS use that new state, overriding any existing one.
-7. Disability: If user says "no disability", "not disabled", "disability nahi", "koi disability nahi" → set isDisabled: false. If user says "disabled", "divyang", "handicap" → set isDisabled: true. If not mentioned at all, omit the field.
+7. Disability: If user says "no disability", "not disabled", "disability nahi" → set isDisabled: false. If user says "disabled", "divyang", "handicap" → set isDisabled: true. If not mentioned, omit the field.
 8. Old/elderly: "old man", "old person", "70 years old", "bujurg" → occupation = "retired".
-9. Return ONLY the JSON. No explanation, no markdown, no extra text.`;
+9. IMPORTANT: If user says "student from [state] who cleared 10th" or "student in [state], 10th class" → set BOTH occupation:"student" AND education:"10th".
+10. MARKS/PERCENTAGE: Extract the user's academic percentage. Examples:
+    - "got 40%", "scored 40%", "40 percent", "i got 40 marks" → marksPercent: 40
+    - "40% in 10th", "40 percentage" → marksPercent: 40
+    - "passed with 75%" → marksPercent: 75
+11. CRITICAL: "passed 10th, now in 11th class" → education:"12th" (currently pursuing), marksPercent from 10th score if mentioned.
+12. Return ONLY the JSON. No explanation, no markdown, no extra text.`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();

@@ -11,10 +11,22 @@ const sessionStore = new Map();
  * Smart profile merge:
  * - If new message explicitly sets a field (state, occupation, gender...), REPLACE the old value.
  * - If new message says nothing about a field, KEEP the old value.
- * This prevents stale profile data (e.g. old "Madhya Pradesh" stuck when user now says "Maharashtra").
+ * - SPECIAL CASE: When occupation changes completely (e.g. student → widow), clear
+ *   occupation-specific fields like marksPercent that don't apply to the new context.
  */
 const mergeProfiles = (existing, newData) => {
   const merged = { ...existing };
+
+  // Detect occupation change — clear context-specific fields
+  if (newData.occupation && existing.occupation && newData.occupation !== existing.occupation) {
+    // These fields are specific to a student context — don't carry over when switching occupation
+    const STUDENT_SPECIFIC_FIELDS = ['marksPercent'];
+    for (const field of STUDENT_SPECIFIC_FIELDS) {
+      delete merged[field];
+    }
+    console.log(`🔄 Occupation changed: ${existing.occupation} → ${newData.occupation}. Cleared: ${STUDENT_SPECIFIC_FIELDS.join(', ')}`);
+  }
+
   for (const [key, value] of Object.entries(newData)) {
     // Allow any non-null, non-undefined value — INCLUDING false (e.g. isDisabled: false = "no disability")
     if (value !== null && value !== undefined && value !== '') {
