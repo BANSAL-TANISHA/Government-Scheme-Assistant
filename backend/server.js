@@ -71,8 +71,12 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (Postman, mobile apps, curl)
     if (!origin) return callback(null, true);
-    // Allow any government-scheme-assistant Vercel URL (including preview deployments)
+    // Allow any Vercel URL for this project (production + all preview deployments)
     if (origin.match(/^https:\/\/government-scheme-assistant.*\.vercel\.app$/)) {
+      return callback(null, true);
+    }
+    // Also allow preview deployments under tanisha-bansals-projects account
+    if (origin.match(/^https:\/\/.*tanisha-bansals-projects\.vercel\.app$/)) {
       return callback(null, true);
     }
     // Allow explicitly listed origins
