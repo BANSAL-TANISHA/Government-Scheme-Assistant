@@ -52,7 +52,7 @@ copy .env.example .env
 ```
 
 Open .env and set these values:
-  PORT=5000
+  PORT=5005
   MONGO_URI=mongodb://localhost:27017/yojana-sahayak
   JWT_SECRET=mysecretkey123changeThis
   GEMINI_API_KEY=your_key_from_google_ai_studio
@@ -69,7 +69,7 @@ Start the backend server:
 npm run dev
 ```
 
-You should see: "Yojana Sahayak server running on port 5000"
+You should see: "Yojana Sahayak server running on port 5005"
 
 ---
 
